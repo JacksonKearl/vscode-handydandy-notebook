@@ -10,7 +10,7 @@ import { dirname } from 'path';
 export function activate(context: vscode.ExtensionContext) {
 
 	const omniExecutor: Executor = (
-		code, cell, document, logger,
+		code, cell, document, logger, token
 	) => {
 		return new Promise((c, e) => {
 			console.log(cell);
@@ -32,29 +32,33 @@ export function activate(context: vscode.ExtensionContext) {
 					logger(`Simple omnikernel cannot execute ${cell.language || `_undefined lang_`} cells`);
 					return c();
 			}
-			const ls = spawn(...command, { cwd: dirname(document.uri.path) });
+			const process = spawn(...command, { cwd: dirname(document.uri.path) });
 
-			ls.on('error', (err) => {
+			process.on('error', (err) => {
 				logger('Failed to start subprocess.' + JSON.stringify(err));
 				console.error('Failed to start subprocess.', err);
 				e();
 			});
 
-			ls.stdout.on('data', (data: Buffer) => {
+			process.stdout.on('data', (data: Buffer) => {
 				const str = data.toString();
 				console.log(str);
 				logger(str);
 			});
 
-			ls.stderr.on('data', (data: Buffer) => {
+			process.stderr.on('data', (data: Buffer) => {
 				const str = data.toString();
 				logger(str);
 				console.error(data);
 			});
 
-			ls.on('close', () => {
+			process.on('close', () => {
 				c();
 			});
+
+			token.onCancellationRequested = () => {
+				process.kill();
+			};
 		});
 	};
 
@@ -69,12 +73,13 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() { }
 
 type Eventually<T> = T | Promise<T>;
-
+type CancellationToken = { onCancellationRequested?: () => void };
 export type Executor = (
 	code: string,
 	cell: vscode.NotebookCell,
 	document: vscode.NotebookDocument,
-	log: (s: string) => void
+	log: (s: string) => void,
+	token: CancellationToken,
 ) => Eventually<vscode.CellOutput | undefined>;
 
 export type NotebookTranslator = {
@@ -87,6 +92,8 @@ export class SimpleKernel implements vscode.NotebookKernel {
 
 	private runIndex = 0;
 
+	private cancellations = new Map<vscode.NotebookCell, CancellationToken>();
+
 	constructor(public label: string, private executor: Executor) { }
 
 	id?: string | undefined;
@@ -95,13 +102,13 @@ export class SimpleKernel implements vscode.NotebookKernel {
 	isPreferred?: boolean | undefined;
 
 	cancelCellExecution(document: vscode.NotebookDocument, cell: vscode.NotebookCell): void {
-		console.error('cancellin');
-		throw new Error('Method not implemented.');
+		this.cancellations.get(cell)?.onCancellationRequested?.();
 	}
 
 	cancelAllCellsExecution(document: vscode.NotebookDocument): void {
-		console.error('cancellin all');
-		throw new Error('Method not implemented.');
+		document.cells.forEach(cell => {
+			this.cancellations.get(cell)?.onCancellationRequested?.();
+		});
 	}
 
 	async executeCell(
@@ -117,7 +124,9 @@ export class SimpleKernel implements vscode.NotebookKernel {
 			const logger = (s: string) => {
 				cell.outputs = [...cell.outputs, { outputKind: vscode.CellOutputKind.Text, text: s }];
 			};
-			await this.executor(cell.document.getText(), cell, document, logger);
+			const token: CancellationToken = { onCancellationRequested: undefined };
+			this.cancellations.set(cell, token);
+			await this.executor(cell.document.getText(), cell, document, logger, token);
 			cell.metadata.runState = vscode.NotebookCellRunState.Success;
 			cell.metadata.lastRunDuration = +new Date() - start;
 		} catch (e) {
@@ -131,6 +140,8 @@ export class SimpleKernel implements vscode.NotebookKernel {
 			];
 			cell.metadata.runState = vscode.NotebookCellRunState.Error;
 			cell.metadata.lastRunDuration = undefined;
+		} finally {
+			this.cancellations.delete(cell);
 		}
 	}
 
