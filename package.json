@@ -1,8 +1,8 @@
 {
-	"name": "simple-notebook-omnikernel",
+	"name": "handydandy-notebook",
 	"publisher": "jacksonkearl",
-	"displayName": "simple-notebook-omnikernel",
-	"description": "",
+	"displayName": "handydandy-notebook",
+	"description": "Notebook for evaluating scripts in a variety of languages",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.50.0"
@@ -15,7 +15,6 @@
 	],
 	"enableProposedApi": true,
 	"main": "./out/extension.js",
-	"contributes": {},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",
 		"compile": "tsc -p ./",
@@ -23,6 +22,30 @@
 		"watch": "tsc -watch -p ./",
 		"pretest": "yarn run compile && yarn run lint",
 		"test": "node ./out/test/runTest.js"
+	},
+	"contributes": {
+		"notebookProvider": [
+			{
+				"viewType": "handydandy-notebook",
+				"displayName": "Handy Dandy Notebook",
+				"priority": "default",
+				"selector": [
+					{
+						"filenamePattern": "*.hdnb"
+					}
+				]
+			},
+			{
+				"viewType": "handydandy-notebook",
+				"displayName": "Handy Dandy Notebook",
+				"priority": "option",
+				"selector": [
+					{
+						"filenamePattern": "*.{md,markdown}"
+					}
+				]
+			}
+		]
 	},
 	"devDependencies": {
 		"@types/vscode": "^1.50.0",
