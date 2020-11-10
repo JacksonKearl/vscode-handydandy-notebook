@@ -11,7 +11,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"*"
+		"onCommand:handydandy-notebook.newNotebook",
+		"onNotebook:handydandy-notebook"
 	],
 	"enableProposedApi": true,
 	"main": "./out/extension.js",
@@ -24,6 +25,12 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"contributes": {
+		"commands": [
+			{
+				"title": "New Handy Dandy Notebook",
+				"command": "handydandy-notebook.newNotebook"
+			}
+		],
 		"notebookProvider": [
 			{
 				"viewType": "handydandy-notebook",
