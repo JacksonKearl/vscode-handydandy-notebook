@@ -15,8 +15,13 @@ export function activate(context: vscode.ExtensionContext) {
 			vscode.commands.executeCommand('workbench.action.files.newUntitledFile', { "viewType": "handydandy-notebook" })),
 		vscode.notebook.registerNotebookContentProvider(
 			'handydandy-notebook', new MarkdownProvider(), providerOptions),
+		vscode.notebook.registerNotebookContentProvider(
+			'handydandy-notebook-md', new MarkdownProvider(), providerOptions),
 		vscode.notebook.registerNotebookKernelProvider(
-			{ viewType: 'handydandy-notebook' }, { provideKernels: () => [HandyDandyKernel] }));
+			{ viewType: 'handydandy-notebook' }, { provideKernels: () => [HandyDandyKernel] }),
+		vscode.notebook.registerNotebookKernelProvider(
+			{ viewType: 'handydandy-notebook-md' }, { provideKernels: () => [HandyDandyKernel] })
+	);
 }
 
 // this method is called when your extension is deactivated

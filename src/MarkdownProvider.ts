@@ -14,6 +14,22 @@ export const providerOptions = {
   transientOutputs: true
 };
 
+const getMostCommonFileType = async () => {
+  const types = [
+    ['js', 'javascript'],
+    ['ts', 'typescript'],
+    ['py', 'python'],
+    ['rb', 'ruby'],
+    ['sh', 'bash'],
+  ];
+  const max = { name: undefined! as string, number: 0 };
+  await Promise.all(types.map(async ([ext, name]) => {
+    const results = await vscode.workspace.findFiles('src/*.' + ext, undefined, 100);
+    if (results.length > max.number) { max.number = results.length; max.name = name; }
+  }));
+  return max.name;
+};
+
 export class MarkdownProvider implements vscode.NotebookContentProvider {
   options?: vscode.NotebookDocumentContentOptions = providerOptions;
 
@@ -34,12 +50,20 @@ export class MarkdownProvider implements vscode.NotebookContentProvider {
       uri = vscode.Uri.parse(openContext.backupId);
     }
 
-    const languages = ALL_LANGUAGES;
+    const languages = ['python', 'typescript', 'javascript', 'shellscript', 'ruby'];
     const metadata: vscode.NotebookDocumentMetadata = { editable: true, cellEditable: true, cellHasExecutionOrder: false, cellRunnable: true, runnable: true };
-    const content = Buffer.from(await vscode.workspace.fs.readFile(uri))
-      .toString('utf8');
 
-    const cellRawData = parseMarkdown(content);
+    const content = uri.scheme === 'untitled'
+      ? ''
+      : Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
+
+    let cellRawData: RawNotebookCell[];
+    if (content.trim().length === 0) {
+      const type = await getMostCommonFileType();
+      cellRawData = parseMarkdown('```' + type + '\n```');
+    } else {
+      cellRawData = parseMarkdown(content.trim().length ? content : '```' + '' + '\n```');
+    }
     const cells = cellRawData.map(rawToNotebookCellData);
 
     return {
@@ -263,60 +287,3 @@ function getBetweenCellsWhitespace(cells: ReadonlyArray<vscode.NotebookCell>, id
 
   return combined;
 }
-
-const ALL_LANGUAGES = [
-  'plaintext',
-  'bat',
-  'clojure',
-  'coffeescript',
-  'jsonc',
-  'c',
-  'cpp',
-  'csharp',
-  'css',
-  'dockerfile',
-  'ignore',
-  'fsharp',
-  'diff',
-  'go',
-  'groovy',
-  'handlebars',
-  'hlsl',
-  'html',
-  'ini',
-  'properties',
-  'java',
-  'javascriptreact',
-  'javascript',
-  'jsx-tags',
-  'json',
-  'less',
-  'lua',
-  'makefile',
-  'markdown',
-  'objective-c',
-  'objective-cpp',
-  'perl',
-  'perl6',
-  'php',
-  'powershell',
-  'jade',
-  'python',
-  'r',
-  'razor',
-  'ruby',
-  'rust',
-  'scss',
-  'search-result',
-  'shaderlab',
-  'shellscript',
-  'sql',
-  'swift',
-  'typescript',
-  'typescriptreact',
-  'vb',
-  'xml',
-  'xsl',
-  'yaml',
-  'github-issues'
-];

@@ -10,7 +10,6 @@ export const omniExecutor: Executor = (
   code: string, cell: vscode.NotebookCell, document: vscode.NotebookDocument, logger: (s: string) => void, token: CancellationToken
 ): Promise<vscode.CellStreamOutput | vscode.CellErrorOutput | vscode.CellDisplayOutput | undefined> => {
   return new Promise((c, e) => {
-    console.log(cell);
     let command: [string, string[]];
     switch (cell.language) {
       case 'javascript':
@@ -21,6 +20,9 @@ export const omniExecutor: Executor = (
         break;
       case 'python':
         command = ['python', ['-c', code]];
+        break;
+      case 'ruby':
+        command = ['ruby', ['-e', code]];
         break;
       case 'shellscript': case 'bash':
         command = ['bash', ['-c', code]];
