@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import { spawn, } from 'child_process';
 import { dirname } from 'path';
+import * as userHome from 'user-home'
 
 export const omniExecutor: Executor = (
   code: string, cell: vscode.NotebookCell, document: vscode.NotebookDocument, logger: (s: string) => void, token: CancellationToken
@@ -31,7 +32,10 @@ export const omniExecutor: Executor = (
         logger(`Simple omnikernel cannot execute ${cell.language || `_undefined lang_`} cells`);
         return c(undefined);
     }
-    const process = spawn(...command, { cwd: dirname(document.uri.path) });
+    const cwd = document.uri.scheme === 'untitled'
+      ? vscode.workspace.workspaceFolders?.[0]?.uri.path ?? userHome
+      : dirname(document.uri.path);
+    const process = spawn(...command, { cwd })
 
     process.on('error', (err) => {
       e(err);

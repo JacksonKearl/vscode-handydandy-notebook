@@ -22,7 +22,7 @@ const getMostCommonFileType = async () => {
     ['rb', 'ruby'],
     ['sh', 'bash'],
   ];
-  const max = { name: undefined! as string, number: 0 };
+  const max = { name: 'bash', number: 0 };
   await Promise.all(types.map(async ([ext, name]) => {
     const results = await vscode.workspace.findFiles('src/*.' + ext, undefined, 100);
     if (results.length > max.number) { max.number = results.length; max.name = name; }
