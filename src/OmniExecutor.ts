@@ -11,27 +11,18 @@ export const omniExecutor: Executor = (
   code: string, cell: vscode.NotebookCell, document: vscode.NotebookDocument, logger: (s: string) => void, token: CancellationToken
 ): Promise<vscode.CellStreamOutput | vscode.CellErrorOutput | vscode.CellDisplayOutput | undefined> => {
   return new Promise((c, e) => {
-    let command: [string, string[]];
-    switch (cell.language) {
-      case 'javascript':
-        command = ['node', ['-e', `(async () => { ${code} } )()`]];
-        break;
-      case 'typescript':
-        command = ['ts-node', ['-T', '-e', code]];
-        break;
-      case 'python':
-        command = ['python', ['-c', code]];
-        break;
-      case 'ruby':
-        command = ['ruby', ['-e', code]];
-        break;
-      case 'shellscript': case 'bash':
-        command = ['bash', ['-c', code]];
-        break;
-      default:
-        logger(`Simple omnikernel cannot execute ${cell.language || `_undefined lang_`} cells`);
-        return c(undefined);
+
+    const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
+    if (!commands[cell.language]) {
+      logger(`Your Handy Dandy Notebook cannot execute ${cell.language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings.`);
+      return c(undefined);
     }
+
+    const command = [
+      commands[cell.language][0],
+      commands[cell.language][1].map(arg => arg.replace(/\$\{code\}/, code))
+    ] as [string, string[]]
+
     const cwd = document.uri.scheme === 'untitled'
       ? vscode.workspace.workspaceFolders?.[0]?.uri.path ?? userHome
       : dirname(document.uri.path);

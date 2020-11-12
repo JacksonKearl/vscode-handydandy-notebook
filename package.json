@@ -29,6 +29,72 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Handy Dandy Notebook",
+			"properties": {
+				"handydandy-notebook.dispatch": {
+					"type": "object",
+					"default": {
+						"python": [
+							"python",
+							[
+								"-c",
+								"${code}"
+							]
+						],
+						"typescript": [
+							"ts-node",
+							[
+								"-T",
+								"--skip-project",
+								"-e",
+								"${code}"
+							]
+						],
+						"javascript": [
+							"node",
+							[
+								"-e",
+								"(async () => { ${code} } )()"
+							]
+						],
+						"ruby": [
+							"ruby",
+							[
+								"-e",
+								"${code}"
+							]
+						],
+						"shellscript": [
+							"bash",
+							[
+								"-c",
+								"${code}"
+							]
+						]
+					},
+					"description": "Mapping from cell language identifiers to the commands that should be invoked to execute code in that languge, along with the arguments that should be passed to those commands.",
+					"additionalProperties": {
+						"type": "array",
+						"items": [
+							{
+								"type": "string",
+								"description": "Program to execute (node, python3, etc.)"
+							},
+							{
+								"type": "array",
+								"description": "Arguments to pass to the program. ${code} will be replaced with the cell contents.",
+								"items": {
+									"description": "Argument to pass to the program. ${code} will be replaced with the cell contents.",
+									"type": "string"
+								}
+							}
+						]
+					}
+				}
+			}
+		},
 		"commands": [
 			{
 				"title": "New Handy Dandy Notebook",

@@ -45,16 +45,23 @@ export class MarkdownProvider implements vscode.NotebookContentProvider {
     };
   }
 
+  private lastSelection: { code: string, lang: string } | undefined;
+  setLastSelection(selection: { code: string, lang: string }) {
+    this.lastSelection = selection;
+  }
+
   async openNotebook(uri: vscode.Uri, openContext: vscode.NotebookDocumentOpenContext): Promise<vscode.NotebookData> {
+    const lastSelection = this.lastSelection;
+    this.lastSelection = undefined;
+
     if (openContext.backupId) {
       uri = vscode.Uri.parse(openContext.backupId);
     }
-
-    const languages = ['python', 'typescript', 'javascript', 'shellscript', 'ruby'];
+    const languages = Object.keys(vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>);
     const metadata: vscode.NotebookDocumentMetadata = { editable: true, cellEditable: true, cellHasExecutionOrder: false, cellRunnable: true, runnable: true };
 
     const content = uri.scheme === 'untitled'
-      ? ''
+      ? lastSelection ? `\`\`\`${lastSelection.lang}\n${lastSelection.code}\n\`\`\`` : ''
       : Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
 
     let cellRawData: RawNotebookCell[];

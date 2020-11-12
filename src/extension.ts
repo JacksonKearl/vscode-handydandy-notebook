@@ -9,14 +9,22 @@ import { MarkdownProvider, providerOptions } from './MarkdownProvider';
 import { HandyDandyKernel } from './OmniExecutor';
 
 export function activate(context: vscode.ExtensionContext) {
-
+	const provider = new MarkdownProvider();
 	context.subscriptions.push(
-		vscode.commands.registerCommand('handydandy-notebook.newNotebook', () =>
-			vscode.commands.executeCommand('workbench.action.files.newUntitledFile', { "viewType": "handydandy-notebook" })),
+		vscode.commands.registerCommand('handydandy-notebook.newNotebook', async () => {
+			const selection = vscode.window.activeTextEditor?.selection;
+			if (selection) {
+				const selectedCode = vscode.window.activeTextEditor!.document.getText(new vscode.Range(selection.start, selection.end));
+				const selectedLang = vscode.window.activeTextEditor!.document.languageId;
+				provider.setLastSelection({ code: selectedCode, lang: selectedLang });
+			}
+
+			await vscode.commands.executeCommand('workbench.action.files.newUntitledFile', { "viewType": "handydandy-notebook" });
+		}),
 		vscode.notebook.registerNotebookContentProvider(
-			'handydandy-notebook', new MarkdownProvider(), providerOptions),
+			'handydandy-notebook', provider, providerOptions),
 		vscode.notebook.registerNotebookContentProvider(
-			'handydandy-notebook-md', new MarkdownProvider(), providerOptions),
+			'handydandy-notebook-md', provider, providerOptions),
 		vscode.notebook.registerNotebookKernelProvider(
 			{ viewType: 'handydandy-notebook' }, { provideKernels: () => [HandyDandyKernel] }),
 		vscode.notebook.registerNotebookKernelProvider(
