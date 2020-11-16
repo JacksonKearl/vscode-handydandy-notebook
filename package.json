@@ -16,7 +16,8 @@
 	],
 	"activationEvents": [
 		"onCommand:handydandy-notebook.newNotebook",
-		"onNotebook:handydandy-notebook"
+		"onNotebook:handydandy-notebook",
+		"onNotebook:handydandy-notebook-md"
 	],
 	"enableProposedApi": true,
 	"main": "./out/extension.js",

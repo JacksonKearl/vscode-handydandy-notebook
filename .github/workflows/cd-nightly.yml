@@ -1,0 +1,73 @@
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  repository_dispatch:
+    types: [trigger-nightly-publish]
+
+name: Publish Nightly
+
+jobs:
+  check:
+    name: Check for updates to Nightly
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.earlyexit.outputs.status }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - id: earlyexit
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          if git rev-parse origin/vNightly >/dev/null 2>&1; then
+            nightlyRef=$(git show-ref -s origin/vNightly)
+            headRef=$(git show-ref --head -s head)
+            echo "origin/vNightly"
+            echo $nightlyRef
+            echo "HEAD"
+            echo $headRef
+            if [ "$nightlyRef" = "$headRef" ]; then
+              echo "No changes since last nightly build. Exiting."
+              echo "::set-output name=status::unchanged"
+              exit 0
+            else
+              echo "Updating vNightly"
+              git push origin --delete vNightly
+              git checkout -b vNightly
+              git push origin vNightly
+            fi
+          else
+            echo "No vNightly branch. Creating."
+            git checkout -b vNightly
+            git push origin vNightly
+          fi
+          echo "::set-output name=status::changed"
+
+  publish:
+    name: Publish Nightly
+    needs: check
+    runs-on: ubuntu-latest
+    if: needs.check.outputs.status == 'changed'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install
+        run: npm i
+      - name: Patch Package for Nightly
+        run: |
+          node -e "var p = require('./package.json'); var d = new Date(); console.log(JSON.stringify({...p, name: p.name+'-nightly', displayName: p.displayName + ' (Nightly)', version: ''+d.getFullYear()+'.'+d.getMonth()+'.'+d.getDay()+d.getHours()+d.getMinutes() }))" > ./package.nightly.json
+          mv package.nightly.json package.json
+      - name: Generate Name
+        run: node -e "console.log('PACKAGE_NAME=' + require('./package.json').name + '-v' + require('./package.json').version)" >> $GITHUB_ENV
+      - name: Build Extension
+        run: npx vsce package -o ./${{ env.PACKAGE_NAME }}.vsix
+      # Skip as we're using proposed API
+      # - name: Publish Extension
+      #   run: npx vsce publish --packagePath ./${{ env.PACKAGE_NAME }}.vsix -p ${{ secrets.MARKETPLACE_PAT }}
+      - name: Publish Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PACKAGE_NAME }}.vsix
+          path: ./${{ env.PACKAGE_NAME }}.vsix
