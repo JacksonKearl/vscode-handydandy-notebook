@@ -18,8 +18,10 @@ export function activate(context: vscode.ExtensionContext) {
 				const selectedLang = vscode.window.activeTextEditor!.document.languageId;
 				provider.setLastSelection({ code: selectedCode, lang: selectedLang });
 			}
-
 			await vscode.commands.executeCommand('workbench.action.files.newUntitledFile', { "viewType": "handydandy-notebook" });
+		}),
+		vscode.commands.registerTextEditorCommand('handydandy-notebook.openInNotebook', async (textEditor) => {
+			await vscode.commands.executeCommand("vscode.openWith", textEditor.document.uri, "handydandy-notebook-md");
 		}),
 		vscode.notebook.registerNotebookContentProvider(
 			'handydandy-notebook', provider, providerOptions),

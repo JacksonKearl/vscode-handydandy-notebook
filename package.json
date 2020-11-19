@@ -16,6 +16,7 @@
 	],
 	"activationEvents": [
 		"onCommand:handydandy-notebook.newNotebook",
+		"onCommand:handydandy-notebook.openInNotebook",
 		"onNotebook:handydandy-notebook",
 		"onNotebook:handydandy-notebook-md"
 	],
@@ -107,8 +108,20 @@
 			{
 				"title": "New Handy Dandy Notebook",
 				"command": "handydandy-notebook.newNotebook"
+			},
+			{
+				"title": "Open in Handy Dandy Notebook",
+				"command": "handydandy-notebook.openInNotebook"
 			}
 		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "handydandy-notebook.openInNotebook",
+					"when": "editorLangId == markdown"
+				}
+			]
+		},
 		"notebookProvider": [
 			{
 				"viewType": "handydandy-notebook",
