@@ -20,9 +20,8 @@ jobs:
         run: npm i
       - name: Build Extension
         run: npx vsce package -o ./${{ env.PACKAGE_NAME }}.vsix
-      # Skip as we're using proposed API
-      # - name: Publish Extension
-      #   run: npx vsce publish --packagePath ./${{ env.PACKAGE_NAME }}.vsix -p ${{ secrets.MARKETPLACE_PAT }}
+      - name: Publish Extension
+        run: npx vsce publish --noVerify --packagePath ./${{ env.PACKAGE_NAME }}.vsix -p ${{ secrets.MARKETPLACE_PAT }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
