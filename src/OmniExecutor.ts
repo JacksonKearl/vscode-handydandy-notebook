@@ -5,130 +5,73 @@
 import * as vscode from 'vscode';
 import { spawn, } from 'child_process';
 import { dirname } from 'path';
-import * as userHome from 'user-home'
+import * as userHome from 'user-home';
 
 export const omniExecutor: Executor = (
-  code: string, cell: vscode.NotebookCell, document: vscode.NotebookDocument, logger: (s: string) => void, token: CancellationToken
-): Promise<vscode.CellStreamOutput | vscode.CellErrorOutput | vscode.CellDisplayOutput | undefined> => {
-  return new Promise((c, e) => {
+	cell: vscode.NotebookCell, logger: (s: string) => void, token: vscode.CancellationToken
+): Promise<undefined> => {
+	return new Promise((c, e) => {
+		const language = cell.document.languageId;
+		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
+		if (!commands[language]) {
+			logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings.`);
+			return c(undefined);
+		}
 
-    const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
-    if (!commands[cell.language]) {
-      logger(`Your Handy Dandy Notebook cannot execute ${cell.language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings.`);
-      return c(undefined);
-    }
+		const command = [
+			commands[language][0],
+			commands[language][1].map(arg => arg.replace(/\$\{code\}/, `\n${cell.document.getText()}\n`))
+		] as [string, string[]];
 
-    const command = [
-      commands[cell.language][0],
-      commands[cell.language][1].map(arg => arg.replace(/\$\{code\}/, code))
-    ] as [string, string[]]
+		const cwd = cell.document.uri.scheme === 'untitled'
+			? vscode.workspace.workspaceFolders?.[0]?.uri.path ?? userHome
+			: dirname(cell.document.uri.path);
+		const process = spawn(...command, { cwd });
 
-    const cwd = document.uri.scheme === 'untitled'
-      ? vscode.workspace.workspaceFolders?.[0]?.uri.path ?? userHome
-      : dirname(document.uri.path);
-    const process = spawn(...command, { cwd })
+		process.on('error', (err) => {
+			e(err);
+		});
 
-    process.on('error', (err) => {
-      e(err);
-    });
+		process.stdout.on('data', (data: Buffer) => {
+			logger(data.toString());
+		});
 
-    process.stdout.on('data', (data: Buffer) => {
-      logger(data.toString());
-    });
+		process.stderr.on('data', (data: Buffer) => {
+			logger(data.toString());
+		});
 
-    process.stderr.on('data', (data: Buffer) => {
-      logger(data.toString());
-    });
+		process.on('close', () => {
+			c(undefined);
+		});
 
-    process.on('close', () => {
-      c(undefined);
-    });
-
-    token.onCancellationRequested = () => {
-      process.kill();
-    };
-  });
+		token.onCancellationRequested(() => {
+			process.kill();
+		});
+	});
 };
 
 type Eventually<T> = T | Promise<T>;
-type CancellationToken = { onCancellationRequested?: () => void };
 export type Executor = (
-  code: string,
-  cell: vscode.NotebookCell,
-  document: vscode.NotebookDocument,
-  log: (s: string) => void,
-  token: CancellationToken,
-) => Eventually<vscode.CellOutput | undefined>;
+	cell: vscode.NotebookCell,
+	log: (s: string) => void,
+	token: vscode.CancellationToken,
+) => Eventually<vscode.NotebookCellOutput | undefined>;
 
-export type NotebookTranslator = {
-  serialize: (document: vscode.NotebookDocument) => Eventually<string>
-  deserialize: (data: string) => Eventually<vscode.NotebookData>
+export const makeNotebookController = (controllerId: string, notebookId: string, label: string, executor: Executor): vscode.NotebookController => {
+	const controller = vscode.notebook.createNotebookController(controllerId, notebookId, label);
+
+	controller.executeHandler = async (cells: vscode.NotebookCell[]) => {
+		for (const cell of cells) {
+			const execution = controller.createNotebookCellExecutionTask(cell);
+			execution.start();
+			execution.clearOutput();
+			await executor(
+				cell,
+				s => execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('text/plain', s)])),
+				execution.token);
+			execution.end();
+		}
+	};
+
+	return controller;
 };
-
-export class SimpleKernel implements vscode.NotebookKernel {
-  preloads?: vscode.Uri[] | undefined;
-
-  private runIndex = 0;
-
-  private cancellations = new Map<vscode.NotebookCell, CancellationToken>();
-
-  constructor(public label: string, private executor: Executor) { }
-
-  id?: string | undefined;
-  description?: string | undefined;
-  detail?: string | undefined;
-  isPreferred?: boolean | undefined;
-
-  cancelCellExecution(document: vscode.NotebookDocument, cell: vscode.NotebookCell): void {
-    this.cancellations.get(cell)?.onCancellationRequested?.();
-  }
-
-  cancelAllCellsExecution(document: vscode.NotebookDocument): void {
-    document.cells.forEach(cell => {
-      this.cancellations.get(cell)?.onCancellationRequested?.();
-    });
-  }
-
-  async executeCell(
-    document: vscode.NotebookDocument,
-    cell: vscode.NotebookCell,
-  ): Promise<void> {
-    try {
-      cell.metadata.runState = vscode.NotebookCellRunState.Running;
-      const start = +new Date();
-      cell.metadata.runStartTime = start;
-      cell.metadata.executionOrder = ++this.runIndex;
-      cell.outputs = [];
-      const logger = (s: string) => {
-        cell.outputs = [...cell.outputs, { outputKind: vscode.CellOutputKind.Text, text: s }];
-      };
-      const token: CancellationToken = { onCancellationRequested: undefined };
-      this.cancellations.set(cell, token);
-      await this.executor(cell.document.getText(), cell, document, logger, token);
-      cell.metadata.runState = vscode.NotebookCellRunState.Success;
-      cell.metadata.lastRunDuration = +new Date() - start;
-    } catch (e) {
-      cell.outputs = [...cell.outputs,
-      {
-        outputKind: vscode.CellOutputKind.Error,
-        ename: e.name,
-        evalue: e.message,
-        traceback: [e.stack],
-      },
-      ];
-      cell.metadata.runState = vscode.NotebookCellRunState.Error;
-      cell.metadata.lastRunDuration = undefined;
-    } finally {
-      this.cancellations.delete(cell);
-    }
-  }
-
-  async executeAllCells(document: vscode.NotebookDocument): Promise<void> {
-    for (const cell of document.cells) {
-      await this.executeCell(document, cell);
-    }
-  }
-}
-
-
-export const HandyDandyKernel = new SimpleKernel('Handy Dandy Kernel', omniExecutor);
