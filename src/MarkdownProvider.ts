@@ -25,7 +25,8 @@ export class MarkdownProvider implements vscode.NotebookSerializer {
 
     const str = Buffer.from(content).toString();
     const cells = parseMarkdown(str);
-    return new vscode.NotebookData(cells.map((cell) => new vscode.NotebookCellData(cell.kind, cell.content, cell.language)));
+    const notebookCells = cells.map((cell) => new vscode.NotebookCellData(cell.kind, cell.content, cell.language));
+    return new vscode.NotebookData(notebookCells);
   }
 
   serializeNotebook(data: vscode.NotebookData, token: vscode.CancellationToken): Uint8Array | Thenable<Uint8Array> {
@@ -47,6 +48,7 @@ export interface RawNotebookCell {
 
 const LANG_IDS = new Map([
   ['bat', 'batch'],
+  ['bash', 'shellscript'],
   ['c++', 'cpp'],
   ['js', 'javascript'],
   ['ts', 'typescript'],
