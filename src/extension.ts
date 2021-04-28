@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 
-import { MarkdownProvider } from './MarkdownProvider';
+import { MarkdownProvider, providerOptions } from './MarkdownProvider';
 import { makeNotebookController, omniExecutor } from './OmniExecutor';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -30,8 +30,8 @@ export function activate(context: vscode.ExtensionContext) {
 			await vscode.commands.executeCommand("vscode.openWith", textEditor.document.uri, "handydandy-notebook-md");
 		}),
 
-		vscode.notebook.registerNotebookSerializer('handydandy-notebook', provider),
-		vscode.notebook.registerNotebookSerializer('handydandy-notebook-md', provider),
+		vscode.notebook.registerNotebookSerializer('handydandy-notebook', provider, providerOptions),
+		vscode.notebook.registerNotebookSerializer('handydandy-notebook-md', provider, providerOptions),
 
 		makeNotebookController('handy-dandy-kernel', 'handydandy-notebook', 'Handy Dandy Kernel', omniExecutor),
 		makeNotebookController('handy-dandy-kernel-md', 'handydandy-notebook-md', 'Handy Dandy Kernel (Markdown)', omniExecutor),
