@@ -58,18 +58,18 @@ export type Executor = (
 ) => Eventually<vscode.NotebookCellOutput | undefined>;
 
 export const makeNotebookController = (controllerId: string, notebookId: string, label: string, executor: Executor): vscode.NotebookController => {
-	const controller = vscode.notebook.createNotebookController(controllerId, notebookId, label);
+	const controller = vscode.notebooks.createNotebookController(controllerId, notebookId, label);
 
 	controller.executeHandler = async (cells: vscode.NotebookCell[]) => {
 		for (const cell of cells) {
-			const execution = controller.createNotebookCellExecutionTask(cell);
+			const execution = controller.createNotebookCellExecution(cell);
 			execution.start();
 			execution.clearOutput();
 			await executor(
 				cell,
-				s => execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('text/plain', s)])),
+				s => execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text( s)])),
 				execution.token);
-			execution.end();
+			execution.end(true);
 		}
 	};
 

@@ -1,6 +1,6 @@
 {
 	"name": "handydandy-notebook",
-	"publisher": "jakearl",
+	"publisher": "jakearl", 
 	"displayName": "Handy Dandy Notebook",
 	"description": "Notebook for evaluating scripts in a variety of languages",
 	"version": "0.0.6",
@@ -9,7 +9,7 @@
 	},
 	"icon": "notebook.png",
 	"engines": {
-		"vscode": "^1.56.0"
+		"vscode": "^1.57.0"
 	},
 	"categories": [
 		"Notebooks"
@@ -20,7 +20,6 @@
 		"onNotebook:handydandy-notebook",
 		"onNotebook:handydandy-notebook-md"
 	],
-	"enableProposedApi": true,
 	"main": "./out/extension.js",
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",
@@ -31,10 +30,21 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"contributes": {
+		"startEntries": [
+			{
+				"title": "Handy Dandy Notebook",
+				"description": "Create a notebook that can run everything, independantly",
+				"command": "handydandy-notebook.newNotebook"
+			}
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Handy Dandy Notebook",
 			"properties": {
+				"handydandy-notebook.defaultLang": {
+					"type": "string",
+					"description": "the language ID to use when creating a new untitled notebook with no selections"
+				},
 				"handydandy-notebook.dispatch": {
 					"type": "object",
 					"default": {
@@ -122,9 +132,9 @@
 				}
 			]
 		},
-		"notebookProvider": [
+		"notebooks": [
 			{
-				"viewType": "handydandy-notebook",
+				"type": "handydandy-notebook",
 				"displayName": "Handy Dandy Notebook",
 				"priority": "default",
 				"selector": [
@@ -134,7 +144,7 @@
 				]
 			},
 			{
-				"viewType": "handydandy-notebook-md",
+				"type": "handydandy-notebook-md",
 				"displayName": "Handy Dandy Notebook",
 				"priority": "option",
 				"selector": [
@@ -150,7 +160,7 @@
 		"@types/mocha": "^7.0.2",
 		"@types/node": "^13.11.0",
 		"@types/user-home": "^2.0.0",
-		"@types/vscode": "1.55.0",
+		"@types/vscode": "1.57.0",
 		"@typescript-eslint/eslint-plugin": "^4.22.0",
 		"@typescript-eslint/parser": "^4.22.0",
 		"eslint": "^6.8.0",

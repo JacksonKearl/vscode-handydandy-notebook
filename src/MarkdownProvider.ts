@@ -18,7 +18,15 @@ export class MarkdownProvider implements vscode.NotebookSerializer {
 
   deserializeNotebook(content: Uint8Array, token: vscode.CancellationToken): vscode.NotebookData | Thenable<vscode.NotebookData> {
     if (content.length === 0) {
-      const cells = this.lastSelections.map((cell) => new vscode.NotebookCellData(vscode.NotebookCellKind.Markdown, cell.code, cell.lang));
+      if (this.lastSelections.length === 0) {
+        this.lastSelections.push(
+          {
+            code: '',
+            lang: vscode.workspace.getConfiguration('handydandy-notebook').get('defaultLang') ?? 'plaintext',
+          }
+        );
+      }
+      const cells = this.lastSelections.map((cell) => new vscode.NotebookCellData(vscode.NotebookCellKind.Code, cell.code, cell.lang));
       this.lastSelections = [];
       return new vscode.NotebookData(cells);
     }
@@ -169,7 +177,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     cells.push({
       language: 'markdown',
       content,
-      kind: vscode.NotebookCellKind.Markdown,
+      kind: vscode.NotebookCellKind.Markup,
       leadingWhitespace: leadingWhitespace,
       trailingWhitespace: trailingWhitespace
     });
@@ -188,16 +196,16 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<vscode.NotebookCellDat
 
     if (cell.kind === vscode.NotebookCellKind.Code) {
       const indentation = cell.metadata?.custom?.indentation || '';
-      const languageAbbrev = LANG_ABBREVS.get(cell.language) || cell.language;
+      const languageAbbrev = LANG_ABBREVS.get(cell.languageId) || cell.languageId;
       const codePrefix = indentation + '```' + languageAbbrev + '\n';
-      const contents = cell.source.split(/\r?\n/g)
+      const contents = cell.value.split(/\r?\n/g)
         .map(line => indentation + line)
         .join('\n');
       const codeSuffix = '\n' + indentation + '```';
 
       result += codePrefix + contents + codeSuffix;
     } else {
-      result += cell.source;
+      result += cell.value;
     }
 
     result += getBetweenCellsWhitespace(cells, i);
