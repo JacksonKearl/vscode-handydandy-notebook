@@ -3,7 +3,7 @@
 	"publisher": "jakearl",
 	"displayName": "Handy Dandy Notebook",
 	"description": "Notebook for evaluating scripts in a variety of languages",
-	"version": "0.0.7",
+	"version": "0.0.9",
 	"repository": {
 		"url": "https://github.com/JacksonKearl/vscode-handydandy-notebook"
 	},
@@ -30,13 +30,6 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"contributes": {
-		"startEntries": [
-			{
-				"title": "Handy Dandy Notebook",
-				"description": "Create a notebook that can run everything, independantly",
-				"command": "handydandy-notebook.newNotebook"
-			}
-		],
 		"configuration": {
 			"type": "object",
 			"title": "Handy Dandy Notebook",
@@ -117,7 +110,8 @@
 		"commands": [
 			{
 				"title": "New Handy Dandy Notebook",
-				"command": "handydandy-notebook.newNotebook"
+				"command": "handydandy-notebook.newNotebook",
+				"shortTitle": "Handy Dandy Notebook"
 			},
 			{
 				"title": "Open in Handy Dandy Notebook",
@@ -129,6 +123,12 @@
 				{
 					"command": "handydandy-notebook.openInNotebook",
 					"when": "editorLangId == markdown"
+				}
+			],
+			"file/newFile": [
+				{
+					"group": "notebook",
+					"command": "handydandy-notebook.newNotebook"
 				}
 			]
 		},

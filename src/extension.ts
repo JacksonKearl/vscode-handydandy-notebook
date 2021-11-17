@@ -14,8 +14,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 
 		vscode.commands.registerCommand('handydandy-notebook.newNotebook', async () => {
-			const activeEditor =  vscode.window.activeTextEditor;
-			if (activeEditor ) {
+			const activeEditor = vscode.window.activeTextEditor;
+			if (activeEditor) {
 				for (const selection of activeEditor.selections ?? []) {
 					const selectedCode = activeEditor.document.getText(new vscode.Range(selection.start, selection.end));
 					const selectedLang = activeEditor.document.languageId;

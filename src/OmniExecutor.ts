@@ -63,13 +63,14 @@ export const makeNotebookController = (controllerId: string, notebookId: string,
 	controller.executeHandler = async (cells: vscode.NotebookCell[]) => {
 		for (const cell of cells) {
 			const execution = controller.createNotebookCellExecution(cell);
-			execution.start();
+
+			execution.start(Date.now());
 			execution.clearOutput();
 			await executor(
 				cell,
-				s => execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text( s)])),
+				s => execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(s)])),
 				execution.token);
-			execution.end(true);
+			execution.end(true, Date.now());
 		}
 	};
 
