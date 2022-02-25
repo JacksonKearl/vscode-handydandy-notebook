@@ -24,8 +24,8 @@ export const omniExecutor: Executor = (
 		] as [string, string[]];
 		const isUntitled = cell.document.uri.path.startsWith('Untitled'); // Hard to detect naturally
 		const cwd = isUntitled
-			? vscode.workspace.workspaceFolders?.[0]?.uri.path ?? userHome
-			: dirname(cell.document.uri.path);
+			? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? userHome
+			: dirname(cell.document.uri.fsPath);
 		const process = spawn(...command, { cwd });
 
 		process.on('error', (err) => {
