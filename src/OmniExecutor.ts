@@ -13,7 +13,7 @@ export const omniExecutor: Executor = (
 	return new Promise((c, e) => {
 		const language = cell.document.languageId;
 		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
-		if (!commands[language] || !commands[language][0] || !commands[language][1]) { 
+		if (!commands[language] || !commands[language][0] || !commands[language][1]) {
 			logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings, this should be a map from language identifiers (${language || `_undefined lang_`})`);
 			return c(undefined);
 		}
@@ -61,17 +61,11 @@ export const makeNotebookController = (controllerId: string, notebookId: string,
 	const controller = vscode.notebooks.createNotebookController(controllerId, notebookId, label);
 	controller.supportedLanguages = Object.keys(vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') ?? {});
 
-	const kernelSetter = vscode.workspace.onDidOpenNotebookDocument(d => {
-		if (d.notebookType === notebookId) { 
-			vscode.commands.executeCommand('_notebook.selectKernel', {id: controllerId, extension: 'jakearl.handydandy-notebook'}) 
-		} 
-	});
-
 	const languageSupporter = vscode.workspace.onDidChangeConfiguration(e => {
-		if (e.affectsConfiguration('handydandy-notebook.dispatch')) {  
+		if (e.affectsConfiguration('handydandy-notebook.dispatch')) {
 			controller.supportedLanguages = Object.keys(vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') ?? {});
-		} 
-	}); 
+		}
+	});
 
 	controller.executeHandler = async (cells: vscode.NotebookCell[]) => {
 		for (const cell of cells) {
@@ -89,12 +83,11 @@ export const makeNotebookController = (controllerId: string, notebookId: string,
 				execution.end(false, Date.now());
 			}
 		}
-	}; 
- 
+	};
+
 	return {
 		dispose() {
 			controller.dispose();
-			kernelSetter.dispose();
 			languageSupporter.dispose();
 		}
 	};
