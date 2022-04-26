@@ -13,8 +13,8 @@ export const omniExecutor: Executor = (
 	return new Promise((c, e) => {
 		const language = cell.document.languageId;
 		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
-		if (!commands[language]) {
-			logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings.`);
+		if (!commands[language] || !commands[language][0] || !commands[language][1]) { 
+			logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings, this should be a map from language identifiers (${language || `_undefined lang_`})`);
 			return c(undefined);
 		}
 
@@ -57,22 +57,45 @@ export type Executor = (
 	token: vscode.CancellationToken,
 ) => Eventually<vscode.NotebookCellOutput | undefined>;
 
-export const makeNotebookController = (controllerId: string, notebookId: string, label: string, executor: Executor): vscode.NotebookController => {
+export const makeNotebookController = (controllerId: string, notebookId: string, label: string, executor: Executor): vscode.Disposable => {
 	const controller = vscode.notebooks.createNotebookController(controllerId, notebookId, label);
+	controller.supportedLanguages = Object.keys(vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') ?? {});
+
+	const kernelSetter = vscode.workspace.onDidOpenNotebookDocument(d => {
+		if (d.notebookType === notebookId) { 
+			vscode.commands.executeCommand('_notebook.selectKernel', {id: controllerId, extension: 'jakearl.handydandy-notebook'}) 
+		} 
+	});
+
+	const languageSupporter = vscode.workspace.onDidChangeConfiguration(e => {
+		if (e.affectsConfiguration('handydandy-notebook.dispatch')) {  
+			controller.supportedLanguages = Object.keys(vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') ?? {});
+		} 
+	}); 
 
 	controller.executeHandler = async (cells: vscode.NotebookCell[]) => {
 		for (const cell of cells) {
 			const execution = controller.createNotebookCellExecution(cell);
-
 			execution.start(Date.now());
 			execution.clearOutput();
-			await executor(
-				cell,
-				s => execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(s)])),
-				execution.token);
-			execution.end(true, Date.now());
+			try {
+				await executor(
+					cell,
+					s => execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(s)])),
+					execution.token);
+				execution.end(true, Date.now());
+			} catch (e) {
+				execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(e as any)]));
+				execution.end(false, Date.now());
+			}
+		}
+	}; 
+ 
+	return {
+		dispose() {
+			controller.dispose();
+			kernelSetter.dispose();
+			languageSupporter.dispose();
 		}
 	};
-
-	return controller;
 };

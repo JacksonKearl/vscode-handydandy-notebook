@@ -36,6 +36,7 @@
 			"properties": {
 				"handydandy-notebook.defaultLang": {
 					"type": "string",
+					"default": "javascript",
 					"description": "the language ID to use when creating a new untitled notebook with no selections"
 				},
 				"handydandy-notebook.dispatch": {
@@ -49,12 +50,12 @@
 							]
 						],
 						"typescript": [
-							"node",
-							[
+							"ts-node", 
+							[ 
 								"-T",
 								"--skip-project",
 								"-e",
-								"(async () => { ${code} } )()"
+								"${code}"  
 							]
 						],
 						"javascript": [
@@ -77,18 +78,13 @@
 								"-c",
 								"${code}"
 							]
-						],
-						"bash": [
-							"bash",
-							[
-								"-c",
-								"${code}"
-							]
 						]
 					},
 					"description": "Mapping from cell language identifiers to the commands that should be invoked to execute code in that languge, along with the arguments that should be passed to those commands.",
 					"additionalProperties": {
 						"type": "array",
+						"minItems": 2,
+						"maxItems": 2,
 						"items": [
 							{
 								"type": "string",
@@ -96,7 +92,7 @@
 							},
 							{
 								"type": "array",
-								"description": "Arguments to pass to the program. ${code} will be replaced with the cell contents.",
+								"description": "Array of arguments to pass to the program. The token \"${code}\" in an argument will be replaced with the cell contents.",
 								"items": {
 									"description": "Argument to pass to the program. ${code} will be replaced with the cell contents.",
 									"type": "string"

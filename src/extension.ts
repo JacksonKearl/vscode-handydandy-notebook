@@ -12,7 +12,6 @@ export function activate(context: vscode.ExtensionContext) {
 	const provider = new MarkdownProvider();
 
 	context.subscriptions.push(
-
 		vscode.commands.registerCommand('handydandy-notebook.newNotebook', async () => {
 			const activeEditor = vscode.window.activeTextEditor;
 			if (activeEditor) {
@@ -22,12 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 					provider.setLastSelection({ code: selectedCode, lang: selectedLang });
 				}
 			}
-
 			await vscode.commands.executeCommand('workbench.action.files.newUntitledFile', { "viewType": "handydandy-notebook" });
-		}),
-
-		vscode.commands.registerTextEditorCommand('handydandy-notebook.openInNotebook', async (textEditor) => {
-			await vscode.commands.executeCommand("vscode.openWith", textEditor.document.uri, "handydandy-notebook-md");
 		}),
 
 		vscode.workspace.registerNotebookSerializer('handydandy-notebook', provider, providerOptions),
@@ -35,7 +29,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 		makeNotebookController('handy-dandy-kernel', 'handydandy-notebook', 'Handy Dandy Kernel', omniExecutor),
 		makeNotebookController('handy-dandy-kernel-md', 'handydandy-notebook-md', 'Handy Dandy Kernel (Markdown)', omniExecutor),
-
 	);
 }
 
