@@ -3,7 +3,7 @@
 	"publisher": "jakearl",
 	"displayName": "Handy Dandy Notebook",
 	"description": "Notebook for evaluating scripts in a variety of languages",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"repository": {
 		"url": "https://github.com/JacksonKearl/vscode-handydandy-notebook"
 	},
@@ -76,6 +76,13 @@
 							"bash",
 							[
 								"-c",
+								"${code}"
+							]
+						],
+						"powershell": [
+							"powershell",
+							[
+								"-Command",
 								"${code}"
 							]
 						]
