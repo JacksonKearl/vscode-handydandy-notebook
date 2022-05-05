@@ -78,6 +78,13 @@
 								"-c",
 								"${code}"
 							]
+						],
+						"powershell": [
+							"powershell",
+							[
+								"-Command",
+								"${code}"
+							]
 						]
 					},
 					"description": "Mapping from cell language identifiers to the commands that should be invoked to execute code in that languge, along with the arguments that should be passed to those commands.",
