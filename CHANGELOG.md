@@ -17,3 +17,7 @@ Added `{{cell:TITLE}}` as a token that expands to reference an existing cell by 
 This token will be substituted with the combined contents of all code cells immediately following all markdown cells containing `# TITLE`.
 
 Added support for passing an object to be used as the execution environment via the dispatch config.
+
+### 0.1.4
+
+Support `${code-path}` in dispatch arguments, which will be the path to a temporary copy of the code to run. This file will be automatically deleted after execution is finished.

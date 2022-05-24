@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { spawn, } from 'child_process';
 import { dirname } from 'path';
 import * as userHome from 'user-home';
+import { createHash } from 'crypto';
 import { env as pEnv } from 'process';
 
 const codeCellExpander = (cell: vscode.NotebookCell, logger: (msg: string) => void, seen: Array<vscode.NotebookCell>): string => {
@@ -43,58 +44,82 @@ const codeCellExpander = (cell: vscode.NotebookCell, logger: (msg: string) => vo
 	return text;
 };
 
-export const omniExecutor: Executor = (
+export const omniExecutor: (context: vscode.ExtensionContext) => Executor = (context) => (
 	cell: vscode.NotebookCell, logger: (s: string) => void, token: vscode.CancellationToken
 ): Promise<undefined> => {
 	return new Promise(async (c, e) => {
-		const language = cell.document.languageId;
-		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[], Record<string, string>]>;
-		if (!commands[language] || !commands[language][0] || !commands[language][1]) {
-			logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings, this should be a map from language identifiers (${language || `_undefined lang_`})`);
-			return c(undefined);
-		}
+		let dispose = () => { };
 
-		let text = codeCellExpander(cell, logger, []);
-		if (text.includes('{{auth:github}}')) {
-			const token = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true });
-			if (!token) {
-				logger('error: no auth available');
-				return '';
+		try {
+			const language = cell.document.languageId;
+			const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[], Record<string, string>]>;
+			if (!commands[language] || !commands[language][0] || !commands[language][1]) {
+				logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings, this should be a map from language identifiers (${language || `_undefined lang_`})`);
+				return c(undefined);
 			}
-			text = text.replace(/{{auth:github}}/g, token.accessToken);
+
+			let text = codeCellExpander(cell, logger, []);
+			if (text.includes('{{auth:github}}')) {
+				const token = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true });
+				if (!token) {
+					logger('error: no auth available');
+					return '';
+				}
+				text = text.replace(/{{auth:github}}/g, token.accessToken);
+			}
+
+			let cellFile: string | undefined;
+			if (commands[language][1].some(arg => arg.includes('${code-path}'))) {
+				const cellDir = vscode.Uri.joinPath(context.globalStorageUri, 'cells');
+				const name = createHash('md5').update(text).digest('hex');
+				const cellUri = vscode.Uri.joinPath(cellDir, name);
+				dispose = () => vscode.workspace.fs.delete(cellUri, { useTrash: false });
+				await vscode.workspace.fs.createDirectory(cellDir);
+				await vscode.workspace.fs.writeFile(cellUri, Buffer.from(text));
+				cellFile = cellUri.fsPath;
+			}
+
+			const command = [
+				commands[language][0],
+				commands[language][1]
+					.map(arg => arg.replace(/\$\{code\}/, `\n${text}\n`))
+					.map(arg => arg.replace(/\$\{code-path\}/, `${cellFile}`)),
+			] as [string, string[]];
+
+			const env = commands[language][2] ?? {};
+			const isUntitled = cell.document.uri.path.startsWith('Untitled'); // Hard to detect naturally
+			const cwd = isUntitled
+				? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? userHome
+				: dirname(cell.document.uri.fsPath);
+			const process = spawn(...command, { cwd, env: { ...pEnv, ...env } });
+
+			process.on('error', (err) => {
+				dispose();
+				e(err);
+			});
+
+			process.stdout.on('data', (data: Buffer) => {
+				logger(data.toString());
+			});
+
+			process.stderr.on('data', (data: Buffer) => {
+				logger(data.toString());
+			});
+
+			process.on('close', () => {
+				dispose();
+				c(undefined);
+			});
+
+			token.onCancellationRequested(() => {
+				dispose();
+				process.kill();
+			});
+		} catch (e) {
+			console.error(e);
+			dispose();
+			throw (e);
 		}
-
-		const command = [
-			commands[language][0],
-			commands[language][1].map(arg => arg.replace(/\$\{code\}/, `\n${text}\n`)),
-		] as [string, string[]];
-
-		const env = commands[language][2] ?? {};
-		const isUntitled = cell.document.uri.path.startsWith('Untitled'); // Hard to detect naturally
-		const cwd = isUntitled
-			? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? userHome
-			: dirname(cell.document.uri.fsPath);
-		const process = spawn(...command, { cwd, env: { ...pEnv, ...env } });
-
-		process.on('error', (err) => {
-			e(err);
-		});
-
-		process.stdout.on('data', (data: Buffer) => {
-			logger(data.toString());
-		});
-
-		process.stderr.on('data', (data: Buffer) => {
-			logger(data.toString());
-		});
-
-		process.on('close', () => {
-			c(undefined);
-		});
-
-		token.onCancellationRequested(() => {
-			process.kill();
-		});
 	});
 };
 

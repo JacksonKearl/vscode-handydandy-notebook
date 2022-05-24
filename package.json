@@ -3,7 +3,7 @@
 	"publisher": "jakearl",
 	"displayName": "Handy Dandy Notebook",
 	"description": "Notebook for evaluating scripts in a variety of languages",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"repository": {
 		"url": "https://github.com/JacksonKearl/vscode-handydandy-notebook"
 	},
@@ -92,9 +92,9 @@
 							},
 							{
 								"type": "array",
-								"description": "Array of arguments to pass to the program. The token \"${code}\" in an argument will be replaced with the cell contents.",
+								"description": "Array of arguments to pass to the program. The token \"${code}\" in an argument will be replaced with the cell contents, and \"${code-path}\" will be replaced with a path to the cell's contents on disk",
 								"items": {
-									"description": "Argument to pass to the program. ${code} will be replaced with the cell contents.",
+									"description": "Argument to pass to the program. ${code} will be replaced with the cell contents, ${code-path} will be replaced with a path to the cell's contents on disk",
 									"type": "string"
 								}
 							},

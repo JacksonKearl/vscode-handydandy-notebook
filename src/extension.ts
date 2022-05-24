@@ -27,8 +27,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.workspace.registerNotebookSerializer('handydandy-notebook', provider, providerOptions),
 		vscode.workspace.registerNotebookSerializer('handydandy-notebook-md', provider, providerOptions),
 
-		makeNotebookController('handy-dandy-kernel', 'handydandy-notebook', 'Handy Dandy Kernel', omniExecutor),
-		makeNotebookController('handy-dandy-kernel-md', 'handydandy-notebook-md', 'Handy Dandy Kernel (Markdown)', omniExecutor),
+		makeNotebookController('handy-dandy-kernel', 'handydandy-notebook', 'Handy Dandy Kernel', omniExecutor(context)),
+		makeNotebookController('handy-dandy-kernel-md', 'handydandy-notebook-md', 'Handy Dandy Kernel (Markdown)', omniExecutor(context)),
 	);
 }
 
