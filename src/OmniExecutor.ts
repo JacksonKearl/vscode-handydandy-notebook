@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { spawn, } from 'child_process';
 import { dirname } from 'path';
 import * as userHome from 'user-home';
+import { env as pEnv } from 'process';
 
 const codeCellExpander = (cell: vscode.NotebookCell, logger: (msg: string) => void, seen: Array<vscode.NotebookCell>): string => {
 	let text = cell.document.getText() + '\n';
@@ -47,7 +48,7 @@ export const omniExecutor: Executor = (
 ): Promise<undefined> => {
 	return new Promise(async (c, e) => {
 		const language = cell.document.languageId;
-		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
+		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[], Record<string, string>]>;
 		if (!commands[language] || !commands[language][0] || !commands[language][1]) {
 			logger(`Your Handy Dandy Notebook cannot execute ${language || `_undefined lang_`} cells. Try adding an entry to \`handydandy-notebook.dispatch\` in settings, this should be a map from language identifiers (${language || `_undefined lang_`})`);
 			return c(undefined);
@@ -65,13 +66,15 @@ export const omniExecutor: Executor = (
 
 		const command = [
 			commands[language][0],
-			commands[language][1].map(arg => arg.replace(/\$\{code\}/, `\n${text}\n`))
+			commands[language][1].map(arg => arg.replace(/\$\{code\}/, `\n${text}\n`)),
 		] as [string, string[]];
+
+		const env = commands[language][2] ?? {};
 		const isUntitled = cell.document.uri.path.startsWith('Untitled'); // Hard to detect naturally
 		const cwd = isUntitled
 			? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? userHome
 			: dirname(cell.document.uri.fsPath);
-		const process = spawn(...command, { cwd });
+		const process = spawn(...command, { cwd, env: { ...pEnv, ...env } });
 
 		process.on('error', (err) => {
 			e(err);

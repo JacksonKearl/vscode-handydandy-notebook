@@ -41,3 +41,5 @@ Added `{{auth:github}}` as a token that expands to contain a github access token
 Added `{{cell:TITLE}}` as a token that expands to reference an existing cell by header name.
 
 This token will be substituted with the combined contents of all code cells immediately following all markdown cells containing `# TITLE`.
+
+Added support for passing an object to be used as the execution environment via the dispatch config.

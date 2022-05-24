@@ -3,7 +3,7 @@
 	"publisher": "jakearl",
 	"displayName": "Handy Dandy Notebook",
 	"description": "Notebook for evaluating scripts in a variety of languages",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"repository": {
 		"url": "https://github.com/JacksonKearl/vscode-handydandy-notebook"
 	},
@@ -80,11 +80,11 @@
 							]
 						]
 					},
-					"description": "Mapping from cell language identifiers to the commands that should be invoked to execute code in that languge, along with the arguments that should be passed to those commands.",
+					"description": "Mapping from cell language identifiers to the commands that should be invoked to execute code in that languge, along with the arguments that should be passed to those commands, and optionally environment variables for execution",
 					"additionalProperties": {
 						"type": "array",
 						"minItems": 2,
-						"maxItems": 2,
+						"maxItems": 3,
 						"items": [
 							{
 								"type": "string",
@@ -97,6 +97,10 @@
 									"description": "Argument to pass to the program. ${code} will be replaced with the cell contents.",
 									"type": "string"
 								}
+							},
+							{
+								"type": "object",
+								"description": "Environment variables to pass to the execution"
 							}
 						]
 					}
