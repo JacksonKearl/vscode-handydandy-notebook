@@ -7,6 +7,41 @@ import { spawn, } from 'child_process';
 import { dirname } from 'path';
 import * as userHome from 'user-home';
 
+const codeCellExpander = (cell: vscode.NotebookCell, logger: (msg: string) => void, seen: Array<vscode.NotebookCell>): string => {
+	let text = cell.document.getText() + '\n';
+
+	if (text.includes(`{{cell:`)) {
+		const allCells = cell.notebook.getCells();
+		const codeFinder = (title: string) => {
+			let allCode = '';
+
+			const titles = allCells
+				.map((c, i) => ({ c, i }))
+				.filter(({ c }) =>
+					c.kind === vscode.NotebookCellKind.Markup &&
+					c.document.getText().toLowerCase().includes(`# ${title}`.toLowerCase()))
+				.map(({ i }) => i);
+
+			for (const title of titles) {
+				const code = allCells.find((c, i) => i > title && c.kind === vscode.NotebookCellKind.Code);
+				if (!code) {
+					logger('error: code cell with title ' + title + ' not found');
+					continue;
+				}
+				if (seen.includes(cell)) {
+					logger('error: recursive expansion, skipping');
+					continue;
+				}
+				allCode += codeCellExpander(code, logger, [...seen, cell]);
+			}
+			return allCode;
+		};
+		text = text.replace(/{{cell:([^}]*)}}/g, (_, title) => codeFinder(title));
+	}
+
+	return text;
+};
+
 export const omniExecutor: Executor = (
 	cell: vscode.NotebookCell, logger: (s: string) => void, token: vscode.CancellationToken
 ): Promise<undefined> => {
@@ -18,12 +53,12 @@ export const omniExecutor: Executor = (
 			return c(undefined);
 		}
 
-		let text = cell.document.getText();
+		let text = codeCellExpander(cell, logger, []);
 		if (text.includes('{{auth:github}}')) {
 			const token = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true });
 			if (!token) {
-				e('no auth');
-				return;
+				logger('error: no auth available');
+				return '';
 			}
 			text = text.replace(/{{auth:github}}/g, token.accessToken);
 		}

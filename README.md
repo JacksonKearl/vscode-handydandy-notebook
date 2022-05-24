@@ -29,3 +29,15 @@ Default:
 "bash": [ "bash", [ "-c", "${code}" ] ]
 }
 ```
+
+## Changelog
+
+### 0.1.2
+
+Added `{{auth:github}}` as a token that expands to contain a github access token
+
+### 0.1.3
+
+Added `{{cell:TITLE}}` as a token that expands to reference an existing cell by header name.
+
+This token will be substituted with the combined contents of all code cells immediately following all markdown cells containing `# TITLE`.
