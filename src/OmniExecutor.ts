@@ -10,7 +10,7 @@ import * as userHome from 'user-home';
 export const omniExecutor: Executor = (
 	cell: vscode.NotebookCell, logger: (s: string) => void, token: vscode.CancellationToken
 ): Promise<undefined> => {
-	return new Promise((c, e) => {
+	return new Promise(async (c, e) => {
 		const language = cell.document.languageId;
 		const commands = vscode.workspace.getConfiguration('handydandy-notebook').get('dispatch') as Record<string, [string, string[]]>;
 		if (!commands[language] || !commands[language][0] || !commands[language][1]) {
@@ -18,9 +18,19 @@ export const omniExecutor: Executor = (
 			return c(undefined);
 		}
 
+		let text = cell.document.getText();
+		if (text.includes('{{auth:github}}')) {
+			const token = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true });
+			if (!token) {
+				e('no auth');
+				return;
+			}
+			text = text.replace(/{{auth:github}}/g, token.accessToken);
+		}
+
 		const command = [
 			commands[language][0],
-			commands[language][1].map(arg => arg.replace(/\$\{code\}/, `\n${cell.document.getText()}\n`))
+			commands[language][1].map(arg => arg.replace(/\$\{code\}/, `\n${text}\n`))
 		] as [string, string[]];
 		const isUntitled = cell.document.uri.path.startsWith('Untitled'); // Hard to detect naturally
 		const cwd = isUntitled

@@ -10,6 +10,8 @@ Provides the command: `New Handy Dandy Notebook` to open a new untitled notebook
 
 Unlike some notebook implementations, the Handy Dandy Notebook does not share any state across cells. This means each time you execute a cell, it runs in a brand new context, totally isolated from the rest of the cells.
 
+Cells support a `{{auth:github}}` token which will be replaced with a github token with repo scope at time of execution.
+
 ## Config
 
 ### handydandy-notebook.dispatch
